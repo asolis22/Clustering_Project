@@ -1,0 +1,100 @@
+
+CLUSTERING ANALYSIS REPORT
+==========================
+
+Dataset
+-------
+The original dataset had 638454 rows and 24 columns.
+
+After cleaning, the dataset had 637480 rows.
+
+Because the dataset was very large, a random sample of 10000 rows was used for clustering.
+This was done so the clustering models and silhouette scores could run in a reasonable amount of time.
+
+Features Used
+-------------
+['Gender', 'Race', 'Age', 'City', 'State', 'Weapon', 'Relationship']
+
+Models Compared
+---------------
+1. K-Means
+2. Gaussian Mixture Model, also called GMM
+3. DBSCAN
+
+What is K-Means?
+----------------
+K-Means is a clustering algorithm that separates data into k groups.
+
+The letter k means the number of clusters.
+
+For example, if k = 3, the model tries to divide the dataset into 3 groups.
+
+Best K-Means k:
+2
+
+What is GMM?
+------------
+GMM stands for Gaussian Mixture Model.
+
+It is similar to K-Means, but it uses probability instead of only distance.
+This means GMM can handle overlapping clusters better.
+
+Best GMM components:
+5
+
+What is DBSCAN?
+---------------
+DBSCAN groups points based on density.
+It can also identify outliers or noise points.
+
+Noise points are labeled as -1.
+
+Best DBSCAN eps:
+1.0
+
+Best DBSCAN min_samples:
+10
+
+Final Model Comparison
+----------------------
+  Model           Chosen Parameters  Number of Clusters  Noise Points  Silhouette Score  Davies-Bouldin Score  Calinski-Harabasz Score
+K-Means                       k = 2                   2             0          0.157585              2.276387              1480.217831
+    GMM              components = 5                   5             0         -0.034583              5.924287               158.894474
+ DBSCAN eps = 1.0, min_samples = 10                  88          7579          0.630885              0.594861               256.947936
+
+Best Overall Model
+------------------
+The best overall model was DBSCAN.
+
+This was chosen mostly based on the silhouette score.
+
+Higher silhouette score means better separated clusters.
+
+Conclusion
+----------
+The clustering analysis compared K-Means, GMM, and DBSCAN.
+
+K-Means is the easiest to explain and uses a chosen number of clusters.
+GMM is more flexible because it uses probability.
+DBSCAN can detect outliers but may struggle with high-dimensional categorical data.
+
+For this dataset sample, DBSCAN performed best based on the silhouette score.
+
+Files Created
+-------------
+- kmeans_results.csv
+- gmm_results.csv
+- dbscan_results.csv
+- final_model_comparison.csv
+- cluster_summaries.csv
+- clustered_sample_results.csv
+- clustering_report.txt
+
+Plots Created
+-------------
+- kmeans_elbow_method.png
+- kmeans_silhouette_scores.png
+- gmm_model_selection.png
+- dbscan_silhouette_by_eps.png
+- pca_all_models_comparison.png
+- model_comparison_silhouette.png

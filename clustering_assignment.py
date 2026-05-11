@@ -1,3 +1,7 @@
+import os
+import warnings
+warnings.filterwarnings("ignore")
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,56 +12,47 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.impute import SimpleImputer
 from sklearn.cluster import KMeans, DBSCAN
 from sklearn.mixture import GaussianMixture
-from sklearn.metrics import silhouette_score
+from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score
 from sklearn.decomposition import PCA
 
 
-# =========================
-# 1. LOAD DATASET
-# =========================
-# Change this to your actual CSV file name
-FILE_NAME = "database.csv"
+# ==========================================================
+# SETUP
+# ==========================================================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FILE_NAME = os.path.join(BASE_DIR, "database.csv")
 
-df = pd.read_csv(FILE_NAME)
+OUTPUT_FOLDER = os.path.join(BASE_DIR, "clustering_outputs")
+PLOTS_FOLDER = os.path.join(OUTPUT_FOLDER, "plots")
 
-print("Dataset loaded successfully.")
-print("Shape:", df.shape)
-print("\nOriginal columns:")
-print(df.columns.tolist())
+os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+os.makedirs(PLOTS_FOLDER, exist_ok=True)
+
+SAMPLE_SIZE = 10000
+RANDOM_STATE = 42
+
+print("Output folder:", OUTPUT_FOLDER)
+print("Plots folder:", PLOTS_FOLDER)
 
 
-# =========================
-# 2. RENAME COLUMNS
-# =========================
-# Edit this section to match your actual dataset columns exactly
+# ==========================================================
+# LOAD DATA
+# ==========================================================
+df = pd.read_csv(FILE_NAME, low_memory=False)
+
 rename_map = {
     "Victim Age": "Age",
     "Victim Sex": "Gender",
     "Victim Race": "Race",
-    "City": "City",
-    "State": "State",
-    "Weapon": "Weapon",
-    "Relationship": "Relationship",
     "Crime Solved": "Solved"
 }
 
 df = df.rename(columns=rename_map)
 
-print("\nColumns after renaming:")
-print(df.columns.tolist())
-
-
-# =========================
-# 3. SELECT FEATURES
-# =========================
-# These are the variables we want to use for clustering
 features = ["Gender", "Race", "Age", "City", "State", "Weapon", "Relationship"]
-
-# This is ONLY for later interpretation, not clustering
 target_col = "Solved"
 
 existing_features = [col for col in features if col in df.columns]
-print("\nUsing features:", existing_features)
 
 cols_to_keep = existing_features.copy()
 if target_col in df.columns:
@@ -65,44 +60,36 @@ if target_col in df.columns:
 
 data = df[cols_to_keep].copy()
 
-
-# =========================
-# 4. CLEAN DATA
-# =========================
-# Replace common unknown values with NaN
 unknown_values = ["Unknown", "unknown", "UNK", "", "nan", "NaN", "None"]
 data = data.replace(unknown_values, np.nan)
 
-# Clean text columns
-for col in data.select_dtypes(include="object").columns:
+for col in data.select_dtypes(include=["object", "string"]).columns:
     data[col] = data[col].astype(str).str.strip()
+    data[col] = data[col].replace(["nan", "None", ""], np.nan)
 
-# Keep only valid ages if Age exists
 if "Age" in data.columns:
     data["Age"] = pd.to_numeric(data["Age"], errors="coerce")
     data = data[data["Age"].notna()]
     data = data[(data["Age"] >= 0) & (data["Age"] <= 110)]
 
-print("\nShape after cleaning:", data.shape)
-print("\nMissing values after cleaning:")
-print(data.isnull().sum())
+print("Full cleaned shape:", data.shape)
+
+# SAMPLE DATA SO THE PROGRAM DOES NOT FREEZE
+if len(data) > SAMPLE_SIZE:
+    data_model = data.sample(n=SAMPLE_SIZE, random_state=RANDOM_STATE).copy()
+else:
+    data_model = data.copy()
+
+print("Modeling sample shape:", data_model.shape)
 
 
-# =========================
-# 5. SPLIT X AND y
-# =========================
-X = data[existing_features].copy()
-y = data[target_col].copy() if target_col in data.columns else None
+# ==========================================================
+# PREPROCESSING
+# ==========================================================
+X = data_model[existing_features].copy()
 
-
-# =========================
-# 6. PREPROCESSING
-# =========================
 numeric_features = [col for col in X.columns if pd.api.types.is_numeric_dtype(X[col])]
 categorical_features = [col for col in X.columns if col not in numeric_features]
-
-print("\nNumeric features:", numeric_features)
-print("Categorical features:", categorical_features)
 
 numeric_transformer = Pipeline(steps=[
     ("imputer", SimpleImputer(strategy="median")),
@@ -111,7 +98,7 @@ numeric_transformer = Pipeline(steps=[
 
 categorical_transformer = Pipeline(steps=[
     ("imputer", SimpleImputer(strategy="most_frequent")),
-    ("onehot", OneHotEncoder(handle_unknown="ignore"))
+    ("onehot", OneHotEncoder(handle_unknown="ignore", sparse_output=False))
 ])
 
 preprocessor = ColumnTransformer(transformers=[
@@ -121,261 +108,398 @@ preprocessor = ColumnTransformer(transformers=[
 
 X_processed = preprocessor.fit_transform(X)
 
-print("\nProcessed feature matrix shape:", X_processed.shape)
-
-# Convert to dense array if needed
-X_dense = X_processed.toarray() if hasattr(X_processed, "toarray") else X_processed
+print("Processed shape:", X_processed.shape)
 
 
-# =========================
-# 7. K-MEANS: FIND BEST K
-# =========================
+# ==========================================================
+# HELPER FUNCTIONS
+# ==========================================================
+def save_plot(filename):
+    path = os.path.join(PLOTS_FOLDER, filename)
+    plt.savefig(path, dpi=300, bbox_inches="tight")
+    print("Saved plot:", path)
+    plt.close()
+
+
+def evaluate_model(X_eval, labels):
+    labels = np.array(labels)
+
+    valid_mask = labels != -1
+    X_valid = X_eval[valid_mask]
+    labels_valid = labels[valid_mask]
+
+    n_clusters = len(set(labels_valid))
+    n_noise = np.sum(labels == -1)
+
+    if n_clusters < 2:
+        return n_clusters, n_noise, np.nan, np.nan, np.nan
+
+    sil = silhouette_score(X_valid, labels_valid)
+    db = davies_bouldin_score(X_valid, labels_valid)
+    ch = calinski_harabasz_score(X_valid, labels_valid)
+
+    return n_clusters, n_noise, sil, db, ch
+
+
+# ==========================================================
+# K-MEANS
+# ==========================================================
 k_values = range(2, 11)
-inertias = []
-sil_scores_kmeans = []
+kmeans_results = []
 
 for k in k_values:
-    kmeans = KMeans(n_clusters=k, random_state=42, n_init=10)
-    labels = kmeans.fit_predict(X_processed)
+    print(f"Running K-Means k={k}...")
+    model = KMeans(n_clusters=k, random_state=RANDOM_STATE, n_init=10)
+    labels = model.fit_predict(X_processed)
 
-    inertias.append(kmeans.inertia_)
+    n_clusters, n_noise, sil, db, ch = evaluate_model(X_processed, labels)
 
-    if len(np.unique(labels)) > 1:
-        sil = silhouette_score(X_processed, labels)
-    else:
-        sil = np.nan
-    sil_scores_kmeans.append(sil)
+    kmeans_results.append({
+        "k": k,
+        "inertia": model.inertia_,
+        "n_clusters": n_clusters,
+        "n_noise": n_noise,
+        "silhouette": sil,
+        "davies_bouldin": db,
+        "calinski_harabasz": ch
+    })
+
+kmeans_df = pd.DataFrame(kmeans_results)
+kmeans_df.to_csv(os.path.join(OUTPUT_FOLDER, "kmeans_results.csv"), index=False)
+
+best_k = int(kmeans_df.loc[kmeans_df["silhouette"].idxmax(), "k"])
+
+kmeans_final = KMeans(n_clusters=best_k, random_state=RANDOM_STATE, n_init=10)
+data_model["KMeans_Cluster"] = kmeans_final.fit_predict(X_processed)
 
 plt.figure(figsize=(8, 5))
-plt.plot(list(k_values), inertias, marker='o')
-plt.title("K-means Elbow Method")
-plt.xlabel("Number of Clusters (k)")
+plt.plot(kmeans_df["k"], kmeans_df["inertia"], marker="o")
+plt.title("K-Means Elbow Method")
+plt.xlabel("Number of Clusters, k")
 plt.ylabel("Inertia")
 plt.grid(True)
-plt.show()
+save_plot("kmeans_elbow_method.png")
 
 plt.figure(figsize=(8, 5))
-plt.plot(list(k_values), sil_scores_kmeans, marker='o')
-plt.title("K-means Silhouette Scores")
-plt.xlabel("Number of Clusters (k)")
+plt.plot(kmeans_df["k"], kmeans_df["silhouette"], marker="o")
+plt.title("K-Means Silhouette Scores")
+plt.xlabel("Number of Clusters, k")
 plt.ylabel("Silhouette Score")
 plt.grid(True)
-plt.show()
-
-best_k = list(k_values)[np.nanargmax(sil_scores_kmeans)]
-print("\nBest k for K-means:", best_k)
+save_plot("kmeans_silhouette_scores.png")
 
 
-# =========================
-# 8. FINAL K-MEANS MODEL
-# =========================
-kmeans_final = KMeans(n_clusters=best_k, random_state=42, n_init=10)
-kmeans_labels = kmeans_final.fit_predict(X_processed)
-
-data["KMeans_Cluster"] = kmeans_labels
-
-print("\nK-means cluster counts:")
-print(data["KMeans_Cluster"].value_counts().sort_index())
-
-
-# =========================
-# 9. GMM: FIND BEST NUMBER OF COMPONENTS
-# =========================
-bic_scores = []
-aic_scores = []
-sil_scores_gmm = []
+# ==========================================================
+# GMM
+# ==========================================================
+gmm_results = []
 
 for k in k_values:
-    gmm = GaussianMixture(n_components=k, random_state=42)
-    gmm.fit(X_dense)
+    print(f"Running GMM components={k}...")
+    model = GaussianMixture(n_components=k, random_state=RANDOM_STATE)
+    labels = model.fit_predict(X_processed)
 
-    bic_scores.append(gmm.bic(X_dense))
-    aic_scores.append(gmm.aic(X_dense))
+    n_clusters, n_noise, sil, db, ch = evaluate_model(X_processed, labels)
 
-    labels = gmm.predict(X_dense)
+    gmm_results.append({
+        "components": k,
+        "bic": model.bic(X_processed),
+        "aic": model.aic(X_processed),
+        "n_clusters": n_clusters,
+        "n_noise": n_noise,
+        "silhouette": sil,
+        "davies_bouldin": db,
+        "calinski_harabasz": ch
+    })
 
-    if len(np.unique(labels)) > 1:
-        sil = silhouette_score(X_dense, labels)
-    else:
-        sil = np.nan
-    sil_scores_gmm.append(sil)
+gmm_df = pd.DataFrame(gmm_results)
+gmm_df.to_csv(os.path.join(OUTPUT_FOLDER, "gmm_results.csv"), index=False)
+
+best_gmm_k = int(gmm_df.loc[gmm_df["bic"].idxmin(), "components"])
+
+gmm_final = GaussianMixture(n_components=best_gmm_k, random_state=RANDOM_STATE)
+data_model["GMM_Cluster"] = gmm_final.fit_predict(X_processed)
 
 plt.figure(figsize=(8, 5))
-plt.plot(list(k_values), bic_scores, marker='o', label='BIC')
-plt.plot(list(k_values), aic_scores, marker='o', label='AIC')
+plt.plot(gmm_df["components"], gmm_df["bic"], marker="o", label="BIC")
+plt.plot(gmm_df["components"], gmm_df["aic"], marker="o", label="AIC")
 plt.title("GMM Model Selection")
 plt.xlabel("Number of Components")
 plt.ylabel("Score")
 plt.legend()
 plt.grid(True)
-plt.show()
-
-best_gmm_k = list(k_values)[np.argmin(bic_scores)]
-print("\nBest number of GMM components:", best_gmm_k)
+save_plot("gmm_model_selection.png")
 
 
-# =========================
-# 10. FINAL GMM MODEL
-# =========================
-gmm_final = GaussianMixture(n_components=best_gmm_k, random_state=42)
-gmm_labels = gmm_final.fit_predict(X_dense)
-
-data["GMM_Cluster"] = gmm_labels
-
-print("\nGMM cluster counts:")
-print(data["GMM_Cluster"].value_counts().sort_index())
-
-
-# =========================
-# 11. DBSCAN: PARAMETER SEARCH
-# =========================
-eps_values = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+# ==========================================================
+# DBSCAN
+# ==========================================================
+eps_values = [1, 2, 3, 4, 5, 6, 7, 8]
 min_samples_values = [3, 5, 8, 10]
 
 dbscan_results = []
 
 for eps in eps_values:
     for min_samples in min_samples_values:
-        db = DBSCAN(eps=eps, min_samples=min_samples)
-        labels = db.fit_predict(X_processed)
+        print(f"Running DBSCAN eps={eps}, min_samples={min_samples}...")
+        model = DBSCAN(eps=eps, min_samples=min_samples)
+        labels = model.fit_predict(X_processed)
 
-        n_clusters = len(set(labels)) - (1 if -1 in labels else 0)
-        n_noise = list(labels).count(-1)
-
-        valid_mask = labels != -1
-        unique_valid = np.unique(labels[valid_mask])
-
-        if len(unique_valid) > 1 and valid_mask.sum() > len(unique_valid):
-            sil = silhouette_score(X_processed[valid_mask], labels[valid_mask])
-        else:
-            sil = np.nan
+        n_clusters, n_noise, sil, db, ch = evaluate_model(X_processed, labels)
 
         dbscan_results.append({
             "eps": eps,
             "min_samples": min_samples,
             "n_clusters": n_clusters,
             "n_noise": n_noise,
-            "silhouette": sil
+            "silhouette": sil,
+            "davies_bouldin": db,
+            "calinski_harabasz": ch
         })
 
-dbscan_df = pd.DataFrame(dbscan_results).sort_values(
-    by=["silhouette", "n_clusters"], ascending=[False, False]
-)
+dbscan_df = pd.DataFrame(dbscan_results)
+dbscan_df.to_csv(os.path.join(OUTPUT_FOLDER, "dbscan_results.csv"), index=False)
 
-print("\nTop DBSCAN parameter results:")
-print(dbscan_df.head(10))
-
-
-# =========================
-# 12. FINAL DBSCAN MODEL
-# =========================
 valid_dbscan = dbscan_df.dropna(subset=["silhouette"])
 
 if len(valid_dbscan) > 0:
-    best_db = valid_dbscan.iloc[0]
-    best_eps = best_db["eps"]
-    best_min_samples = int(best_db["min_samples"])
-
-    print("\nBest DBSCAN parameters:")
-    print("eps =", best_eps)
-    print("min_samples =", best_min_samples)
+    best_dbscan = valid_dbscan.sort_values("silhouette", ascending=False).iloc[0]
+    best_eps = best_dbscan["eps"]
+    best_min_samples = int(best_dbscan["min_samples"])
 
     dbscan_final = DBSCAN(eps=best_eps, min_samples=best_min_samples)
-    dbscan_labels = dbscan_final.fit_predict(X_processed)
-
-    data["DBSCAN_Cluster"] = dbscan_labels
-
-    print("\nDBSCAN cluster counts:")
-    print(data["DBSCAN_Cluster"].value_counts().sort_index())
+    data_model["DBSCAN_Cluster"] = dbscan_final.fit_predict(X_processed)
 else:
-    print("\nNo valid DBSCAN clustering found with the tested parameters.")
-    data["DBSCAN_Cluster"] = -1
+    best_eps = None
+    best_min_samples = None
+    data_model["DBSCAN_Cluster"] = -1
+
+plt.figure(figsize=(8, 5))
+plt.scatter(dbscan_df["eps"], dbscan_df["silhouette"])
+plt.title("DBSCAN Silhouette Scores by eps")
+plt.xlabel("eps")
+plt.ylabel("Silhouette Score")
+plt.grid(True)
+save_plot("dbscan_silhouette_by_eps.png")
 
 
-# =========================
-# 13. PCA VISUALIZATION
-# =========================
-pca = PCA(n_components=2, random_state=42)
-X_pca = pca.fit_transform(X_dense)
+# ==========================================================
+# PCA PLOTS
+# ==========================================================
+pca = PCA(n_components=2, random_state=RANDOM_STATE)
+X_pca = pca.fit_transform(X_processed)
 
 fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
-axes[0].scatter(X_pca[:, 0], X_pca[:, 1], c=data["KMeans_Cluster"], s=15)
-axes[0].set_title("K-means Clusters")
+axes[0].scatter(X_pca[:, 0], X_pca[:, 1], c=data_model["KMeans_Cluster"], s=10)
+axes[0].set_title("K-Means Clusters")
 
-axes[1].scatter(X_pca[:, 0], X_pca[:, 1], c=data["GMM_Cluster"], s=15)
+axes[1].scatter(X_pca[:, 0], X_pca[:, 1], c=data_model["GMM_Cluster"], s=10)
 axes[1].set_title("GMM Clusters")
 
-axes[2].scatter(X_pca[:, 0], X_pca[:, 1], c=data["DBSCAN_Cluster"], s=15)
+axes[2].scatter(X_pca[:, 0], X_pca[:, 1], c=data_model["DBSCAN_Cluster"], s=10)
 axes[2].set_title("DBSCAN Clusters")
 
 for ax in axes:
     ax.set_xlabel("PCA 1")
     ax.set_ylabel("PCA 2")
+    ax.grid(True)
 
 plt.tight_layout()
-plt.show()
+save_plot("pca_all_models_comparison.png")
 
 
-# =========================
-# 14. COMPARE CLUSTERS WITH SOLVED
-# =========================
-if y is not None:
-    print("\n--- KMeans Cluster vs Solved ---")
-    print(pd.crosstab(data["KMeans_Cluster"], data["Solved"], normalize="index"))
+# ==========================================================
+# FINAL COMPARISON
+# ==========================================================
+kmeans_scores = evaluate_model(X_processed, data_model["KMeans_Cluster"])
+gmm_scores = evaluate_model(X_processed, data_model["GMM_Cluster"])
+dbscan_scores = evaluate_model(X_processed, data_model["DBSCAN_Cluster"])
 
-    print("\n--- GMM Cluster vs Solved ---")
-    print(pd.crosstab(data["GMM_Cluster"], data["Solved"], normalize="index"))
+comparison = pd.DataFrame([
+    {
+        "Model": "K-Means",
+        "Chosen Parameters": f"k = {best_k}",
+        "Number of Clusters": kmeans_scores[0],
+        "Noise Points": kmeans_scores[1],
+        "Silhouette Score": kmeans_scores[2],
+        "Davies-Bouldin Score": kmeans_scores[3],
+        "Calinski-Harabasz Score": kmeans_scores[4]
+    },
+    {
+        "Model": "GMM",
+        "Chosen Parameters": f"components = {best_gmm_k}",
+        "Number of Clusters": gmm_scores[0],
+        "Noise Points": gmm_scores[1],
+        "Silhouette Score": gmm_scores[2],
+        "Davies-Bouldin Score": gmm_scores[3],
+        "Calinski-Harabasz Score": gmm_scores[4]
+    },
+    {
+        "Model": "DBSCAN",
+        "Chosen Parameters": f"eps = {best_eps}, min_samples = {best_min_samples}",
+        "Number of Clusters": dbscan_scores[0],
+        "Noise Points": dbscan_scores[1],
+        "Silhouette Score": dbscan_scores[2],
+        "Davies-Bouldin Score": dbscan_scores[3],
+        "Calinski-Harabasz Score": dbscan_scores[4]
+    }
+])
 
-    print("\n--- DBSCAN Cluster vs Solved ---")
-    print(pd.crosstab(data["DBSCAN_Cluster"], data["Solved"], normalize="index"))
+comparison.to_csv(os.path.join(OUTPUT_FOLDER, "final_model_comparison.csv"), index=False)
+
+best_model = comparison.dropna(subset=["Silhouette Score"]).sort_values(
+    "Silhouette Score",
+    ascending=False
+).iloc[0]["Model"]
+
+plt.figure(figsize=(8, 5))
+plt.bar(comparison["Model"], comparison["Silhouette Score"])
+plt.title("Model Comparison Using Silhouette Score")
+plt.xlabel("Model")
+plt.ylabel("Silhouette Score")
+plt.grid(axis="y")
+save_plot("model_comparison_silhouette.png")
 
 
-# =========================
-# 15. CLUSTER SUMMARIES
-# =========================
-if "Age" in data.columns:
-    print("\nAverage Age by K-means Cluster:")
-    print(data.groupby("KMeans_Cluster")["Age"].mean())
+# ==========================================================
+# CLUSTER SUMMARIES
+# ==========================================================
+summary_rows = []
 
-for col in ["Gender", "Race", "City", "State", "Weapon", "Relationship"]:
-    if col in data.columns:
-        print(f"\nMost common {col} in each K-means cluster:")
-        print(
-            data.groupby("KMeans_Cluster")[col]
-            .agg(lambda x: x.mode().iloc[0] if not x.mode().empty else np.nan)
-        )
+for model_col in ["KMeans_Cluster", "GMM_Cluster", "DBSCAN_Cluster"]:
+    for cluster_id in sorted(data_model[model_col].unique()):
+        cluster_data = data_model[data_model[model_col] == cluster_id]
 
+        row = {
+            "Model": model_col.replace("_Cluster", ""),
+            "Cluster": cluster_id,
+            "Count": len(cluster_data)
+        }
 
-# =========================
-# 16. FINAL COMPARISON TABLE
-# =========================
-best_dbscan_sil = valid_dbscan.iloc[0]["silhouette"] if len(valid_dbscan) > 0 else np.nan
+        if "Age" in cluster_data.columns:
+            row["Average Age"] = cluster_data["Age"].mean()
 
-comparison = pd.DataFrame({
-    "Method": ["K-means", "GMM", "DBSCAN"],
-    "Chosen Parameters": [
-        f"k = {best_k}",
-        f"components = {best_gmm_k}",
-        f"eps = {best_eps}, min_samples = {best_min_samples}" if len(valid_dbscan) > 0 else "No valid clustering"
-    ],
-    "Quality Score": [
-        np.nanmax(sil_scores_kmeans),
-        np.nanmax(sil_scores_gmm),
-        best_dbscan_sil
-    ]
-})
+        for col in ["Gender", "Race", "City", "State", "Weapon", "Relationship"]:
+            if col in cluster_data.columns:
+                mode_value = cluster_data[col].mode()
+                row[f"Most Common {col}"] = mode_value.iloc[0] if not mode_value.empty else np.nan
 
-print("\nFinal Comparison Table:")
-print(comparison)
+        summary_rows.append(row)
+
+cluster_summary = pd.DataFrame(summary_rows)
+cluster_summary.to_csv(os.path.join(OUTPUT_FOLDER, "cluster_summaries.csv"), index=False)
+
+data_model.to_csv(os.path.join(OUTPUT_FOLDER, "clustered_sample_results.csv"), index=False)
 
 
-# =========================
-# 17. SAVE RESULTS
-# =========================
-data.to_csv("clustered_homicide_results.csv", index=False)
-comparison.to_csv("clustering_comparison_table.csv", index=False)
+# ==========================================================
+# REPORT
+# ==========================================================
+report = f"""
+CLUSTERING ANALYSIS REPORT
+==========================
 
-print("\nDone. Results saved as:")
-print("- clustered_homicide_results.csv")
-print("- clustering_comparison_table.csv")
+Dataset
+-------
+The original dataset had {df.shape[0]} rows and {df.shape[1]} columns.
+
+After cleaning, the dataset had {data.shape[0]} rows.
+
+Because the dataset was very large, a random sample of {len(data_model)} rows was used for clustering.
+This was done so the clustering models and silhouette scores could run in a reasonable amount of time.
+
+Features Used
+-------------
+{existing_features}
+
+Models Compared
+---------------
+1. K-Means
+2. Gaussian Mixture Model, also called GMM
+3. DBSCAN
+
+What is K-Means?
+----------------
+K-Means is a clustering algorithm that separates data into k groups.
+
+The letter k means the number of clusters.
+
+For example, if k = 3, the model tries to divide the dataset into 3 groups.
+
+Best K-Means k:
+{best_k}
+
+What is GMM?
+------------
+GMM stands for Gaussian Mixture Model.
+
+It is similar to K-Means, but it uses probability instead of only distance.
+This means GMM can handle overlapping clusters better.
+
+Best GMM components:
+{best_gmm_k}
+
+What is DBSCAN?
+---------------
+DBSCAN groups points based on density.
+It can also identify outliers or noise points.
+
+Noise points are labeled as -1.
+
+Best DBSCAN eps:
+{best_eps}
+
+Best DBSCAN min_samples:
+{best_min_samples}
+
+Final Model Comparison
+----------------------
+{comparison.to_string(index=False)}
+
+Best Overall Model
+------------------
+The best overall model was {best_model}.
+
+This was chosen mostly based on the silhouette score.
+
+Higher silhouette score means better separated clusters.
+
+Conclusion
+----------
+The clustering analysis compared K-Means, GMM, and DBSCAN.
+
+K-Means is the easiest to explain and uses a chosen number of clusters.
+GMM is more flexible because it uses probability.
+DBSCAN can detect outliers but may struggle with high-dimensional categorical data.
+
+For this dataset sample, {best_model} performed best based on the silhouette score.
+
+Files Created
+-------------
+- kmeans_results.csv
+- gmm_results.csv
+- dbscan_results.csv
+- final_model_comparison.csv
+- cluster_summaries.csv
+- clustered_sample_results.csv
+- clustering_report.txt
+
+Plots Created
+-------------
+- kmeans_elbow_method.png
+- kmeans_silhouette_scores.png
+- gmm_model_selection.png
+- dbscan_silhouette_by_eps.png
+- pca_all_models_comparison.png
+- model_comparison_silhouette.png
+"""
+
+with open(os.path.join(OUTPUT_FOLDER, "clustering_report.txt"), "w", encoding="utf-8") as f:
+    f.write(report)
+
+
+print("\nDONE! Files saved successfully.")
+print("Best model:", best_model)
+print("Output folder:", OUTPUT_FOLDER)
+print("Plots folder:", PLOTS_FOLDER)

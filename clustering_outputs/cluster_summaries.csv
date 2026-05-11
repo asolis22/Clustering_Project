@@ -1,0 +1,97 @@
+Model,Cluster,Count,Average Age,Most Common Gender,Most Common Race,Most Common City,Most Common State,Most Common Weapon,Most Common Relationship
+KMeans,0,2490,57.57991967871486,Male,White,Los Angeles,California,Handgun,Acquaintance
+KMeans,1,7510,25.60652463382157,Male,Black,Los Angeles,California,Handgun,Acquaintance
+GMM,0,495,28.11919191919192,Female,White,Hartford,Texas,Handgun,Wife
+GMM,1,522,25.77777777777778,Male,White,Ventura,California,Handgun,Acquaintancel
+GMM,2,6263,35.11240619511416,Male,White,New York,California,Handgun,Acquaintance
+GMM,3,1819,29.306761957119296,Male,Black,Cook,California,Handgun,Acquaintance
+GMM,4,901,38.94117647058823,Male,White,El Paso,Texas,Handgun,Acquaintance
+DBSCAN,-1,7579,35.17904736772661,Male,White,Los Angeles,California,Handgun,Acquaintance
+DBSCAN,0,16,24.4375,Male,White,Orange,California,Handgun,Acquaintance
+DBSCAN,1,133,32.40601503759399,Male,White,New York,New York,Handgun,Acquaintance
+DBSCAN,2,69,28.797101449275363,Male,White,Los Angeles,California,Handgun,Stranger
+DBSCAN,3,30,28.3,Male,Black,New York,New York,Handgun,Stranger
+DBSCAN,4,20,29.15,Male,Black,Alameda,California,Handgun,
+DBSCAN,5,28,36.32142857142857,Male,White,New York,New York,Knife,Acquaintance
+DBSCAN,6,80,27.35,Male,Black,Baltimore city,Maryland,Handgun,Acquaintance
+DBSCAN,7,174,27.137931034482758,Male,Black,New York,New York,Handgun,Acquaintance
+DBSCAN,8,12,27.416666666666668,Male,Black,New York,New York,Firearm,
+DBSCAN,9,21,43.04761904761905,Male,White,Dade,Florida,Handgun,Acquaintance
+DBSCAN,10,12,29.333333333333332,Male,White,Riverside,California,Handgun,Acquaintance
+DBSCAN,11,26,29.192307692307693,Male,Black,Fulton,Georgia,Handgun,Acquaintance
+DBSCAN,12,12,30.666666666666668,Male,Black,Duval,Florida,Handgun,
+DBSCAN,13,20,31.35,Male,Black,Marion,Indiana,Handgun,Acquaintance
+DBSCAN,14,39,28.0,Male,Black,District of Columbia,District of Columbia,Handgun,
+DBSCAN,15,12,27.333333333333332,Male,Black,East Baton Rouge,Louisiana,Handgun,Acquaintance
+DBSCAN,16,148,26.93918918918919,Male,White,Los Angeles,California,Handgun,Acquaintance
+DBSCAN,17,82,28.646341463414632,Male,Black,Wayne,Michigan,Handgun,Acquaintance
+DBSCAN,18,31,31.06451612903226,Male,Black,New York,New York,Knife,Acquaintance
+DBSCAN,19,21,31.80952380952381,Male,White,New York,New York,Handgun,Stranger
+DBSCAN,20,22,29.045454545454547,Male,Black,Harris,Texas,Handgun,Stranger
+DBSCAN,21,24,24.583333333333332,Male,Black,Dade,Florida,Handgun,
+DBSCAN,22,48,27.833333333333332,Male,Black,Orleans,Louisiana,Handgun,Acquaintance
+DBSCAN,23,28,31.214285714285715,Male,Black,Dallas,Texas,Handgun,Acquaintance
+DBSCAN,24,25,25.56,Male,Black,Cook,Illinois,Handgun,Stranger
+DBSCAN,25,17,26.235294117647058,Male,Black,Cuyahoga,Ohio,Handgun,Acquaintance
+DBSCAN,26,13,28.384615384615383,Male,Black,De Kalb,Georgia,Handgun,Acquaintance
+DBSCAN,27,82,27.134146341463413,Male,Black,Los Angeles,California,Handgun,Acquaintance
+DBSCAN,28,115,27.791304347826088,Male,Black,Cook,Illinois,Handgun,Acquaintance
+DBSCAN,29,15,29.4,Male,Black,Hinds,Mississippi,Handgun,Acquaintance
+DBSCAN,30,22,26.5,Male,Black,Milwaukee,Wisconsin,Handgun,Acquaintance
+DBSCAN,31,14,28.5,Male,Black,Baltimore city,Maryland,Knife,Acquaintance
+DBSCAN,32,16,26.125,Male,Black,Allegheny,Pennsylvania,Handgun,Acquaintance
+DBSCAN,33,70,28.2,Male,Black,Philadelphia,Pennsylvania,Handgun,Acquaintance
+DBSCAN,34,12,27.166666666666668,Male,Black,Palm Beach,Florida,Handgun,
+DBSCAN,35,19,31.263157894736842,Male,White,Los Angeles,California,Knife,Acquaintance
+DBSCAN,36,28,24.571428571428573,Male,Black,Essex,New Jersey,Handgun,Acquaintance
+DBSCAN,37,11,30.545454545454547,Male,Black,Hamilton,Ohio,Handgun,Acquaintance
+DBSCAN,38,11,30.545454545454547,Male,White,Fresno,California,Handgun,Acquaintance
+DBSCAN,39,13,23.153846153846153,Female,White,Los Angeles,California,Handgun,Acquaintance
+DBSCAN,40,11,27.545454545454547,Male,Black,Jackson,Missouri,Handgun,Acquaintance
+DBSCAN,41,37,29.81081081081081,Male,White,Cook,Illinois,Handgun,Acquaintance
+DBSCAN,42,20,26.05,Male,Black,District of Columbia,District of Columbia,Firearm,
+DBSCAN,43,12,39.916666666666664,Male,White,Dade,Florida,Firearm,Acquaintance
+DBSCAN,44,25,30.76,Male,White,Philadelphia,Pennsylvania,Handgun,Acquaintance
+DBSCAN,45,38,25.605263157894736,Male,Black,Los Angeles,California,Handgun,Stranger
+DBSCAN,46,23,26.304347826086957,Male,Black,Shelby,Tennessee,Handgun,Acquaintance
+DBSCAN,47,36,27.88888888888889,Male,Black,St. Louis city,Missouri,Handgun,Acquaintance
+DBSCAN,48,17,29.058823529411764,Male,Black,Philadelphia,Pennsylvania,Handgun,Stranger
+DBSCAN,49,16,25.9375,Male,White,Bexar,Texas,Handgun,Acquaintance
+DBSCAN,50,23,28.91304347826087,Male,White,Harris,Texas,Handgun,Stranger
+DBSCAN,51,24,29.458333333333332,Male,Black,Richmond,Virginia,Handgun,Acquaintance
+DBSCAN,52,22,26.59090909090909,Male,White,Dallas,Texas,Handgun,Acquaintance
+DBSCAN,53,12,28.0,Male,Black,Jefferson,Alabama,Handgun,Acquaintance
+DBSCAN,54,19,30.94736842105263,Male,White,Los Angeles,California,Firearm,
+DBSCAN,55,39,27.71794871794872,Male,Black,Wayne,Michigan,Firearm,Acquaintance
+DBSCAN,56,12,25.916666666666668,Male,Black,Lake,Indiana,Handgun,Acquaintance
+DBSCAN,57,26,26.576923076923077,Male,Black,Prince George's,Maryland,Handgun,Acquaintance
+DBSCAN,58,10,26.9,Male,Black,Wayne,Michigan,Handgun,Stranger
+DBSCAN,59,16,30.5625,Male,Black,Dallas,Texas,Firearm,
+DBSCAN,60,13,31.53846153846154,Male,White,San Bernardino,California,Handgun,Stranger
+DBSCAN,61,22,28.181818181818183,Male,White,San Bernardino,California,Handgun,Acquaintance
+DBSCAN,62,27,32.74074074074074,Male,White,Harris,Texas,Handgun,Acquaintance
+DBSCAN,63,25,28.24,Male,Black,Harris,Texas,Handgun,Acquaintance
+DBSCAN,64,11,22.0,Male,Black,Hennepin,Minnesota,Handgun,Acquaintance
+DBSCAN,65,14,26.714285714285715,Male,White,Maricopa,Arizona,Handgun,Stranger
+DBSCAN,66,15,31.733333333333334,Male,Black,Davidson,Tennessee,Handgun,Acquaintance
+DBSCAN,67,11,25.727272727272727,Male,Black,San Bernardino,California,Handgun,Acquaintance
+DBSCAN,68,15,31.733333333333334,Female,Black,Wayne,Michigan,Handgun,Acquaintance
+DBSCAN,69,17,25.294117647058822,Male,Black,St. Louis city,Missouri,Firearm,Acquaintance
+DBSCAN,70,14,31.714285714285715,Male,Black,Baltimore city,Maryland,Handgun,Stranger
+DBSCAN,71,10,26.6,Male,Black,Mobile,Alabama,Handgun,Acquaintance
+DBSCAN,72,10,26.9,Male,White,Harris,Texas,Knife,Acquaintance
+DBSCAN,73,15,27.666666666666668,Male,White,San Diego,California,Handgun,Acquaintance
+DBSCAN,74,10,31.0,Male,White,Oklahoma,Oklahoma,Handgun,Acquaintance
+DBSCAN,75,10,26.2,Male,Black,Fulton,Georgia,Handgun,Stranger
+DBSCAN,76,10,35.0,Male,Black,Wayne,Michigan,Knife,Acquaintance
+DBSCAN,77,10,30.4,Male,White,Tarrant,Texas,Handgun,Acquaintance
+DBSCAN,78,12,29.416666666666668,Male,White,Clark,Nevada,Handgun,Acquaintance
+DBSCAN,79,14,29.071428571428573,Male,Black,Jefferson,Louisiana,Handgun,Acquaintance
+DBSCAN,80,12,33.5,Male,Black,Philadelphia,Pennsylvania,Knife,Acquaintance
+DBSCAN,81,15,26.6,Male,Black,Dade,Florida,Firearm,Acquaintance
+DBSCAN,82,11,30.818181818181817,Male,White,New York,New York,Blunt Object,Acquaintance
+DBSCAN,83,11,23.09090909090909,Male,Black,Jackson,Missouri,Firearm,
+DBSCAN,84,22,25.0,Male,White,Maricopa,Arizona,Handgun,Acquaintance
+DBSCAN,85,16,28.0625,Male,Black,Cook,Illinois,Firearm,Acquaintance
+DBSCAN,86,10,23.5,Male,Black,Jefferson,Kentucky,Handgun,Acquaintance
+DBSCAN,87,10,27.7,Male,Black,Monroe,New York,Handgun,Acquaintance
